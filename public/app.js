@@ -317,15 +317,37 @@ function renderStats() {
 
 /* ── canvas charts ──────────────────────────────────────────────── */
 
+/**
+ * Size a canvas for the screen's pixel density and hand back a context that
+ * draws in plain CSS pixels.
+ *
+ * The height the chart is drawn at must be remembered separately, because
+ * assigning `canvas.height` overwrites the HTML height attribute. Reading that
+ * attribute back on the next repaint would multiply by the pixel ratio again,
+ * and again, until the canvas is too big for the browser to paint. On a 1x
+ * display that bug is invisible; at 1.5x it blows up within seconds.
+ */
 function prepCanvas(canvas) {
+  if (!canvas.dataset.designHeight) {
+    canvas.dataset.designHeight = canvas.getAttribute('height') ?? '200';
+  }
+  const cssHeight = parseInt(canvas.dataset.designHeight, 10);
   const dpr = window.devicePixelRatio || 1;
   const width = canvas.clientWidth;
-  const height = canvas.height / (canvas._dpr ?? 1) || canvas.getAttribute('height');
-  const cssHeight = parseInt(canvas.getAttribute('height'), 10);
-  canvas.width = width * dpr;
-  canvas.height = cssHeight * dpr;
+
+  // Nothing to draw on before layout has given the canvas a width.
+  if (!(width > 0) || !(cssHeight > 0)) return null;
+
+  const targetWidth = Math.round(width * dpr);
+  const targetHeight = Math.round(cssHeight * dpr);
+
+  // Assigning either dimension wipes the canvas, so only do it on a real change.
+  if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+    canvas.width = targetWidth;
+    canvas.height = targetHeight;
+  }
   canvas.style.height = `${cssHeight}px`;
-  canvas._dpr = dpr;
+
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, width, cssHeight);
@@ -334,7 +356,9 @@ function prepCanvas(canvas) {
 
 function drawPriceChart() {
   const canvas = el('chart');
-  const { ctx, width, height } = prepCanvas(canvas);
+  const sized = prepCanvas(canvas);
+  if (!sized) return;
+  const { ctx, width, height } = sized;
   const s = state.snapshot;
 
   const bars = state.range === '7d' ? s.bars1h : s.bars1m.slice(-Number(state.range));
@@ -425,7 +449,9 @@ function drawPriceChart() {
 
 function drawFundingChart(history) {
   const canvas = el('funding-chart');
-  const { ctx, width, height } = prepCanvas(canvas);
+  const sized = prepCanvas(canvas);
+  if (!sized) return;
+  const { ctx, width, height } = sized;
   const bars = [...(history ?? [])].sort((a, b) => a.at - b.at).slice(-24);
   if (!bars.length) return;
 
