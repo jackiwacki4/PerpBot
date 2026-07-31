@@ -22,57 +22,47 @@ To point at Kalshi's demo exchange instead of production: `KALSHI_ENV=demo node 
 
 ## Put it on the internet
 
-Any of these work from this repo as-is. **Render is the easiest**, and it suits
-this app best: it runs one long-lived process, so the cache in `lib/kalshi.js`
-is shared by everyone looking at the site instead of being rebuilt per request.
+Free, and about three minutes. Render is the pick — it runs one always-on
+process, so it fetches from Kalshi once and reuses that for every tab you have
+open.
 
-### Render (recommended)
+1. Sign up at [render.com](https://render.com) with your GitHub account.
+2. **New → Blueprint**, choose this repo.
+3. Deploy. Nothing to fill in — it reads `render.yaml`.
 
-1. Push this repo to GitHub.
-2. On [render.com](https://render.com): **New → Blueprint**, pick the repo.
-   It reads `render.yaml` and needs no further configuration.
-3. You get a `https://perpbot-something.onrender.com` URL.
+You get a link like `https://perpbot-xxxx.onrender.com` that works on any device.
 
-On Render's free plan the service sleeps after 15 minutes with no traffic and
-takes roughly a minute to wake. In practice a dashboard tab polls every 2
-seconds, so it stays awake while you're actually using it — you'll only notice
-the delay on the first load of the day. The paid plan removes the sleeping.
+On the free plan it goes to sleep after 15 minutes of nobody using it and takes
+about a minute to wake up. The dashboard refreshes every 2 seconds, so it stays
+awake while you're actually watching it — you'd only notice on the first load of
+the day.
 
-### Vercel
+<details>
+<summary>Other ways to host it</summary>
 
-```bash
-npx vercel
-```
+- **Vercel** — `npx vercel`. Uses `vercel.json`. Never sleeps, but it re-fetches
+  from Kalshi more often than Render does.
+- **Docker** — `docker build -t perpbot . && docker run -p 3000:3000 perpbot`.
+  Works on Fly, Railway, Cloud Run, or your own machine.
 
-`vercel.json` serves `public/` from the CDN and routes `/api/*` to
-`api/index.js`. No sleeping and it's fast everywhere, but each serverless
-instance has its own memory, so the upstream cache is less effective and Kalshi
-sees more calls.
+</details>
 
-### Docker (Fly, Railway, Cloud Run, your own box)
+## Optional settings
 
-```bash
-docker build -t perpbot .
-docker run -p 3000:3000 perpbot
-```
-
-## Settings for a public deploy
-
-All optional, set as environment variables:
+Set these as environment variables if you want them. You don't need any of them.
 
 | Variable | Default | What it does |
 | --- | --- | --- |
 | `PORT` | `3000` | Port to listen on. Hosts set this for you. |
-| `SITE_PASSWORD` | unset | If set, the site asks for a password (any username). Off by default. |
-| `RATE_LIMIT_PER_MINUTE` | `120` | Requests allowed per visitor IP per minute. One open tab uses about 30. |
-| `KALSHI_ENV` | `prod` | Set to `demo` for Kalshi's demo exchange. |
+| `SITE_PASSWORD` | off | Asks for a password before showing the site. Any username works. |
+| `RATE_LIMIT_PER_MINUTE` | `120` | Requests allowed per visitor per minute. One open tab uses about 30. |
+| `KALSHI_ENV` | `prod` | Set to `demo` for Kalshi's practice exchange. |
 
-There's a `/healthz` endpoint for uptime checks; it stays reachable even when
-`SITE_PASSWORD` is on.
+There's a `/healthz` URL for uptime checks. It keeps working even with the
+password on.
 
-Nothing here is secret — the app holds no keys and reads only public data — so a
-public URL is not a security problem. The password is just there if you'd rather
-not have strangers using your deployment.
+The app holds no keys and reads only public data, so a public link isn't a
+security risk. The password is just there if you'd rather keep it to yourself.
 
 ## What you're looking at
 
@@ -82,21 +72,24 @@ number. `WAIT` means the signals disagree or are too weak to be worth acting on.
 **Why** — the seven things that produced that call. Each row votes long (green,
 bar right of centre) or short (red, bar left of centre):
 
-| Factor | What it reads |
+| Row | What it reads |
 | --- | --- |
-| Trend | Whether the 9-minute average is above or below the 21-minute one |
-| Momentum | The last 15 minutes, measured against how much this market normally moves |
-| Stretch (RSI) | Whether price is overbought or oversold — this one leans *against* the move |
-| Order book | Whether resting buy orders outweigh sell orders near the price |
-| Aggressive flow | Whether recent fills were buyers lifting offers or sellers hitting bids |
-| Funding pressure | Which side is paying to hold, and how crowded that side is |
-| Premium to index | How far the perp has drifted from the underlying spot index |
+| Which way is it drifting? | Whether the 9-minute average is above or below the 21-minute one |
+| How hard is it moving? | The last 15 minutes, against how much this market normally moves |
+| Has it gone too far? | Overbought or oversold — this one leans *against* the move |
+| Orders waiting to fill | Whether buy orders outweigh sell orders near the price |
+| Who is actually buying? | Whether recent trades were buyers or sellers being aggressive |
+| What it costs to hold | Which side is paying to hold, and how crowded that side is |
+| Gap to the real price | How far the perp has drifted from the actual spot price |
+
+Each row shows its technical name in small grey text underneath, so you can look
+it up later if you ever want to.
 
 **Trade plan** — entry, stop and target. The stop is 2.5x the market's recent
 average minute range, and the target is 1.8x the stop. These come from how much
 this market actually moves, not from a forecast.
 
-**Position sizer** — type in your account size and how much of it you're willing
+**How much to buy** — type in your account size and how much of it you're willing
 to lose on one trade. It tells you how many contracts to click so that your stop
 being hit costs exactly that much, plus the resulting leverage, the funding cost
 of holding, and what the spread will cost you.
@@ -104,7 +97,7 @@ of holding, and what the spread will cost you.
 **Funding** — Kalshi charges funding every 8 hours (04:00, 12:00 and 20:00 UTC).
 Positive means longs pay shorts. The countdown shows when the next one settles.
 
-**Order book / Tape / Market stats** — resting orders around the price, the most
+**Orders waiting / Recent trades / The numbers** — resting orders around the price, the most
 recent fills, and the summary numbers.
 
 ## Two price scales

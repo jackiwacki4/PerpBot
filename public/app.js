@@ -149,7 +149,7 @@ function renderVerdict() {
   el('verdict-line').textContent =
     bias === 'WAIT'
       ? 'Signals disagree or are too weak. Sitting out is a position.'
-      : `Mostly driven by ${top ? top.label.toLowerCase() : 'mixed signals'}.`;
+      : `Mostly driven by ${top?.short ?? 'mixed signals'}.`;
 
   // Map score (-1..1) onto the track.
   el('score-needle').style.left = `${((score + 1) / 2) * 100}%`;
@@ -164,7 +164,7 @@ function renderFactors() {
       const left = f.score >= 0 ? 50 : 50 - width;
       return `
         <div class="factor">
-          <div class="factor-name">${f.label}</div>
+          <div class="factor-name">${f.label}${f.note ? `<em>${f.note}</em>` : ''}</div>
           <div class="factor-value">${f.value}</div>
           <div class="factor-bar"><i class="${side}" style="left:${left}%;width:${width}%"></i></div>
           <div class="factor-detail">${f.detail}</div>
@@ -222,17 +222,17 @@ function renderSizer() {
   const maxLev = s.stats.leverageEstimate;
 
   out.innerHTML =
-    row('Contracts to click', fmtInt(contracts), '', 'headline') +
-    row('Position notional', fmtUsd(notional)) +
-    row('Effective leverage', `${leverage.toFixed(2)}x`, leverage > (maxLev || 5) ? 'neg' : '') +
-    row('Risk if stopped', `-${fmtUsd(contracts * lossPerContract)}`, 'neg') +
-    row('Gain at target', `+${fmtUsd(profit)}`, 'pos') +
+    row('Contracts to buy', fmtInt(contracts), '', 'headline') +
+    row('Position size', fmtUsd(notional)) +
+    row('Leverage', `${leverage.toFixed(2)}x`, leverage > (maxLev || 5) ? 'neg' : '') +
+    row('You lose if stopped out', `-${fmtUsd(contracts * lossPerContract)}`, 'neg') +
+    row('You make if target hits', `+${fmtUsd(profit)}`, 'pos') +
     row(
       `Funding per ${8}h`,
       `${fundingPerPeriod >= 0 ? '+' : ''}${fmtUsd(fundingPerPeriod)}`,
       signClass(fundingPerPeriod),
     ) +
-    row('Half-spread cost', fmtUsd((s.price.spread / 2) * s.contractSize * contracts)) +
+    row('Cost of the spread', fmtUsd((s.price.spread / 2) * s.contractSize * contracts)) +
     `<p class="note">Max leverage Kalshi estimates for this market is ${Number.isFinite(maxLev) ? maxLev.toFixed(1) : '—'}x.
      Sizing assumes your stop actually fills at ${fmtPrice(plan.stop, decimalsFor(plan.stop))};
      in a ${metrics.atrPct?.toFixed(2) ?? '—'}%-per-minute tape it may fill worse.</p>`;
@@ -250,10 +250,10 @@ function renderFunding() {
   const payer = f.rate > 0 ? 'longs pay shorts' : f.rate < 0 ? 'shorts pay longs' : 'nobody pays';
 
   el('funding').innerHTML =
-    row('Current estimate', `${(f.rate * 100).toFixed(4)}% / 8h`, signClass(-f.rate), 'headline') +
-    row('Annualised', fmtPct(metrics.fundingAnnualPct, 1), signClass(-metrics.fundingAnnualPct)) +
-    row('Direction', payer) +
-    row('Perp vs index', fmtPct(state.snapshot.price.basisPct, 3), signClass(state.snapshot.price.basisPct));
+    row('Right now', `${(f.rate * 100).toFixed(4)}% / 8h`, signClass(-f.rate), 'headline') +
+    row('Adds up to (per year)', fmtPct(metrics.fundingAnnualPct, 1), signClass(-metrics.fundingAnnualPct)) +
+    row('Who pays', payer) +
+    row('Gap to real price', fmtPct(state.snapshot.price.basisPct, 3), signClass(state.snapshot.price.basisPct));
 
   drawFundingChart(f.history);
 }
@@ -305,14 +305,14 @@ function renderStats() {
   const { stats, price } = state.snapshot;
   const { metrics } = state.signals;
   el('stats').innerHTML =
-    row('5m / 15m / 1h', `${fmtPct(metrics.change5m)} · ${fmtPct(metrics.change15m)} · ${fmtPct(metrics.change1h)}`) +
+    row('Move: 5m / 15m / 1h', `${fmtPct(metrics.change5m)} · ${fmtPct(metrics.change15m)} · ${fmtPct(metrics.change1h)}`) +
     row('24h change', fmtPct(metrics.change24h), signClass(metrics.change24h)) +
-    row('Typical minute move', `${Number.isFinite(metrics.atrPct) ? metrics.atrPct.toFixed(3) : '—'}%`) +
-    row('RSI (14, 1m)', Number.isFinite(metrics.rsi14) ? metrics.rsi14.toFixed(1) : '—') +
+    row('Normal move per minute', `${Number.isFinite(metrics.atrPct) ? metrics.atrPct.toFixed(3) : '—'}%`) +
+    row('Overbought meter (0-100)', Number.isFinite(metrics.rsi14) ? metrics.rsi14.toFixed(1) : '—') +
     row('24h volume', fmtUsd(stats.volume24hUsd)) +
     row('Open interest', fmtUsd(stats.openInterestUsd)) +
-    row('Depth ±0.5%', fmtUsd(metrics.depthUsd)) +
-    row('Mark price', fmtPrice(price.mark, decimalsFor(price.mid)));
+    row('Orders near the price', fmtUsd(metrics.depthUsd)) +
+    row('Kalshi mark price', fmtPrice(price.mark, decimalsFor(price.mid)));
 }
 
 /* ── canvas charts ──────────────────────────────────────────────── */

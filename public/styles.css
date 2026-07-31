@@ -139,6 +139,8 @@ html, body {
 .factors { display: flex; flex-direction: column; gap: 11px; }
 .factor { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; }
 .factor-name { font-size: 12.5px; font-weight: 600; }
+/* The technical name, kept small so it's there if you want it and ignorable if not. */
+.factor-name em { display: block; font-style: normal; font-weight: 400; font-size: 10.5px; color: var(--dim); font-family: var(--mono); }
 .factor-value { font: 600 12px/1.4 var(--mono); color: var(--muted); white-space: nowrap; }
 .factor-bar {
   grid-column: 1 / -1;
