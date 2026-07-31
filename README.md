@@ -66,8 +66,10 @@ security risk. The password is just there if you'd rather keep it to yourself.
 
 ## What you're looking at
 
-**Right now** — the headline call: `LONG`, `SHORT`, or `WAIT`, with a confidence
-number. `WAIT` means the signals disagree or are too weak to be worth acting on.
+**Right now** — the headline call: `LONG`, `SHORT`, or `WAIT`, plus how much of
+the reading agrees with it. `WAIT` means the signals disagree or are too weak to
+be worth acting on. Read the section on whether the signal works before you lean
+on this.
 
 **Why** — the seven things that produced that call. Each row votes long (green,
 bar right of centre) or short (red, bar left of centre):
@@ -127,6 +129,38 @@ any browser cross-origin restrictions and, more usefully, lets one set of
 upstream calls serve every open tab. The page polls every 2 seconds while the
 cache holds each Kalshi response for about a second.
 
+## Does the signal actually work?
+
+Run the backtest and find out for yourself:
+
+```bash
+node backtest.js              # BTC, 5 days
+node backtest.js all 5        # every liquid market, pooled
+```
+
+It replays history one minute at a time, scores each minute using only the data
+available at that moment, then checks what price did next.
+
+**What it says today, over ~82,000 minutes across 12 markets:** the score does
+not predict short-term direction. Long calls were right 47.1% of the time at 15
+minutes, against a 48.2% baseline of price simply rising. Every cut-off from
+0.15 to 0.50 came out at or below break-even, and the score buckets are flat
+where they should slope.
+
+A single market over a few days sometimes looks much better than that — BTC
+alone showed a decent edge — but that disappears the moment you pool markets,
+which is what noise does.
+
+So treat the LONG/SHORT/WAIT call as a summary of current conditions, not a
+prediction. What this dashboard is genuinely good at is the stuff that isn't a
+forecast at all: what a position costs to hold, how wide the spread is, how much
+depth is behind the price, and how many contracts match your risk.
+
+Two caveats on the backtest itself. It can only replay the three price-based
+factors — the order book, the trade tape, funding and the index gap are half the
+live score and aren't available historically. And a few days is a small sample,
+so treat anything under a couple of points as noise.
+
 ## Tests
 
 ```bash
@@ -146,6 +180,7 @@ never ship it to the browser.
 ## Not financial advice
 
 The signals are mechanical readings of live public data. They are not
-predictions, they have not been backtested, and perpetual futures are leveraged
+predictions, they show no measured edge over the history that can be replayed
+(see above), and perpetual futures are leveraged
 products where you can lose more than you expect very quickly. Every trade is
 your decision.

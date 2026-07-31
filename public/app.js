@@ -190,10 +190,18 @@ function renderPlan() {
     return;
   }
   const d = decimalsFor(plan.entry);
+  const { contractSize, asset } = state.snapshot;
+  // Kalshi's order ticket is priced per contract, not per coin. Showing only
+  // the coin price means doing this conversion in your head mid-trade.
+  const ticket = (assetPrice) => fmtPrice(assetPrice * contractSize, 4);
+
   container.innerHTML = `
-    <div class="plan-item"><div class="k">Entry (${plan.side.toLowerCase()})</div><div class="v">${fmtPrice(plan.entry, d)}</div><div class="s">at the mid</div></div>
-    <div class="plan-item stop"><div class="k">Stop</div><div class="v">${fmtPrice(plan.stop, d)}</div><div class="s">${plan.stopPct.toFixed(2)}% away</div></div>
-    <div class="plan-item target"><div class="k">Target</div><div class="v">${fmtPrice(plan.target, d)}</div><div class="s">${plan.riskReward.toFixed(1)}:1 reward</div></div>`;
+    <div class="plan-item"><div class="k">Entry (${plan.side.toLowerCase()})</div><div class="v">${fmtPrice(plan.entry, d)}</div><div class="s">type <b>${ticket(plan.entry)}</b></div></div>
+    <div class="plan-item stop"><div class="k">Stop</div><div class="v">${fmtPrice(plan.stop, d)}</div><div class="s">type <b>${ticket(plan.stop)}</b> · ${plan.stopPct.toFixed(2)}% away</div></div>
+    <div class="plan-item target"><div class="k">Target</div><div class="v">${fmtPrice(plan.target, d)}</div><div class="s">type <b>${ticket(plan.target)}</b> · ${plan.riskReward.toFixed(1)}:1</div></div>
+    <p class="plan-note">Big number is the ${asset} price. <b>Bold</b> is what Kalshi's order
+      ticket asks for — one contract is ${contractSize} ${asset}, so the ticket price is
+      ${contractSize} × the ${asset} price.</p>`;
 }
 
 function renderSizer() {
@@ -250,10 +258,13 @@ function renderFunding() {
   const payer = f.rate > 0 ? 'longs pay shorts' : f.rate < 0 ? 'shorts pay longs' : 'nobody pays';
 
   el('funding').innerHTML =
-    row('Right now', `${(f.rate * 100).toFixed(4)}% / 8h`, signClass(-f.rate), 'headline') +
-    row('Adds up to (per year)', fmtPct(metrics.fundingAnnualPct, 1), signClass(-metrics.fundingAnnualPct)) +
-    row('Who pays', payer) +
-    row('Gap to real price', fmtPct(state.snapshot.price.basisPct, 3), signClass(state.snapshot.price.basisPct));
+    row(
+      f.rate === 0 ? 'Nobody pays right now' : payer,
+      `${(f.rate * 100).toFixed(4)}% / 8h`,
+      signClass(-f.rate),
+      'headline',
+    ) +
+    row('Adds up to (per year)', fmtPct(metrics.fundingAnnualPct, 1), signClass(-metrics.fundingAnnualPct));
 
   drawFundingChart(f.history);
 }
@@ -308,10 +319,8 @@ function renderStats() {
     row('Move: 5m / 15m / 1h', `${fmtPct(metrics.change5m)} · ${fmtPct(metrics.change15m)} · ${fmtPct(metrics.change1h)}`) +
     row('24h change', fmtPct(metrics.change24h), signClass(metrics.change24h)) +
     row('Normal move per minute', `${Number.isFinite(metrics.atrPct) ? metrics.atrPct.toFixed(3) : '—'}%`) +
-    row('Overbought meter (0-100)', Number.isFinite(metrics.rsi14) ? metrics.rsi14.toFixed(1) : '—') +
     row('24h volume', fmtUsd(stats.volume24hUsd)) +
     row('Open interest', fmtUsd(stats.openInterestUsd)) +
-    row('Orders near the price', fmtUsd(metrics.depthUsd)) +
     row('Kalshi mark price', fmtPrice(price.mark, decimalsFor(price.mid)));
 }
 

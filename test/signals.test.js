@@ -260,3 +260,58 @@ test('sizing refuses nonsense inputs', () => {
   assert.equal(sizePosition({ snapshot: s, plan, accountUsd: 0, riskPct: 1 }), null);
   assert.equal(sizePosition({ snapshot: s, plan: null, accountUsd: 100, riskPct: 1 }), null);
 });
+
+/* ── corrupt candle rejection ───────────────────────────────────── */
+
+function barsFrom(candles) {
+  return buildSnapshot({
+    market: {
+      ticker: 'KXBCHPERP', title: 't', status: 'active',
+      contract_size: '1', tick_size: '0.0001',
+      bid: '210', ask: '211', price: '210.5',
+      reference_price: { price: '210.5' },
+      liquidation_mark_price: { price: '210.5' },
+    },
+    orderbook: {}, trades: [], candles1m: candles, candles1h: [],
+    fundingEstimate: null, fundingHistory: [],
+  }).bars1m;
+}
+
+function candle(ts, close, book) {
+  return {
+    end_period_ts: ts,
+    price: { open: String(close), high: String(close), low: String(close), close: String(close) },
+    ...(book ? { bid: { close: String(book - 0.5) }, ask: { close: String(book + 0.5) } } : {}),
+  };
+}
+
+test('a sentinel price during the maintenance window is rejected', () => {
+  // Kalshi returns values near 2^62 for these bars; real BCH is ~210.
+  const bars = barsFrom([candle(60, 210.17), candle(120, 46116860184273960), candle(180, 210.04)]);
+  assert.equal(bars.length, 3);
+  for (const b of bars) {
+    assert.ok(b.close > 100 && b.close < 300, `close ${b.close} should stay near the real price`);
+  }
+});
+
+test('a print at half the real price is rejected', () => {
+  const bars = barsFrom([candle(60, 0.68567), candle(120, 0.3525), candle(180, 0.68883)]);
+  assert.ok(bars[1].close > 0.6, `got ${bars[1].close}, expected the bad print to be dropped`);
+});
+
+test('a corrupt bar falls back to the book mid when there is one', () => {
+  const bars = barsFrom([candle(60, 210), candle(120, 4.6e16, 211), candle(180, 210.5)]);
+  assert.ok(Math.abs(bars[1].close - 211) < 0.01, `got ${bars[1].close}, expected the book mid`);
+});
+
+test('ordinary moves are left alone', () => {
+  const bars = barsFrom([candle(60, 210), candle(120, 214), candle(180, 208)]);
+  assert.deepEqual(bars.map((b) => b.close), [210, 214, 208]);
+});
+
+test('a real trend of small steps is never rejected', () => {
+  const closes = Array.from({ length: 60 }, (_, i) => 210 * 1.01 ** i);
+  const bars = barsFrom(closes.map((c, i) => candle(60 * (i + 1), c)));
+  assert.equal(bars.length, 60);
+  assert.ok(Math.abs(bars.at(-1).close - closes.at(-1)) < 0.01);
+});

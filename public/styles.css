@@ -233,3 +233,21 @@ html, body {
 
 .footer { padding: 6px 18px 22px; color: var(--dim); font-size: 11.5px; max-width: 900px; }
 .footer p { margin: 0; }
+
+/* Honest framing under the headline call, and the order-ticket note. */
+.caveat {
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+.plan-note {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+.plan-note b, .plan-item .s b { color: var(--text); font-family: var(--mono); font-weight: 650; }
