@@ -9,6 +9,8 @@ const state = {
   snapshot: null,
   signals: null,
   range: '30',
+  tested: null,
+  testedStatus: null,
   failures: 0,
 };
 
@@ -103,9 +105,11 @@ async function poll() {
   try {
     const res = await fetch(`/api/snapshot?ticker=${encodeURIComponent(state.ticker)}`);
     if (!res.ok) throw new Error((await res.json()).error ?? res.statusText);
-    const { snapshot, signals } = await res.json();
+    const { snapshot, signals, tested, testedStatus } = await res.json();
     state.snapshot = snapshot;
     state.signals = signals;
+    state.tested = tested ?? null;
+    state.testedStatus = testedStatus ?? null;
     state.failures = 0;
     setStatus('live', `live · ${new Date().toLocaleTimeString()}`);
     render();
@@ -136,7 +140,13 @@ function renderHeader() {
 }
 
 function renderVerdict() {
-  const { bias, confidence, score, factors } = state.signals;
+  const { bias: readBias, confidence, score, factors } = state.signals;
+  const tested = state.tested;
+
+  // When a strategy has survived testing, it makes the call and the seven-factor
+  // reading becomes supporting detail. Otherwise the reading is all there is,
+  // and the page says so.
+  const bias = tested ? tested.bias : readBias;
 
   const biasEl = el('verdict-bias');
   biasEl.textContent = bias;
@@ -147,13 +157,51 @@ function renderVerdict() {
 
   const top = [...factors].sort((a, b) => Math.abs(b.score * b.weight) - Math.abs(a.score * a.weight))[0];
   el('verdict-line').textContent =
-    bias === 'WAIT'
-      ? 'Signals disagree or are too weak. Sitting out is a position.'
-      : `Mostly driven by ${top?.short ?? 'mixed signals'}.`;
+    readBias === 'WAIT'
+      ? 'Conditions are mixed or quiet.'
+      : `Conditions lean ${readBias.toLowerCase()}, mostly ${top?.short ?? 'mixed'}.`;
 
-  // Map score (-1..1) onto the track.
   el('score-needle').style.left = `${((score + 1) / 2) * 100}%`;
-  el('signal-updated').textContent = `score ${score >= 0 ? '+' : ''}${score.toFixed(2)}`;
+  el('signal-updated').textContent = `conditions ${score >= 0 ? '+' : ''}${score.toFixed(2)}`;
+
+  renderTested();
+}
+
+function renderTested() {
+  const box = el('tested');
+  const tested = state.tested;
+  const status = state.testedStatus;
+
+  if (!tested) {
+    const why =
+      status?.state === 'never-run'
+        ? 'No strategy search has been run yet. Run <code>node search.js --write</code>.'
+        : (status?.message ?? 'No strategy survived testing.');
+    box.className = 'tested none';
+    box.innerHTML =
+      `<div class="tested-head">Nothing tested is driving this call</div>
+       <p>${why} The call above is a summary of current conditions only — it has no
+       measured track record behind it.</p>`;
+    return;
+  }
+
+  const { tested: record } = tested;
+  const age = tested.generatedAt
+    ? Math.round((Date.now() - Date.parse(tested.generatedAt)) / 86400000)
+    : null;
+
+  box.className = 'tested active';
+  box.innerHTML =
+    `<div class="tested-head">${tested.label}</div>
+     <p class="tested-desc">Chosen by testing ${tested.historyDays ?? '?'} days of history.
+        Hold about ${tested.horizon} minutes.</p>
+     <div class="tested-record">
+       <span><b>${record.trades}</b> trades on unseen data</span>
+       <span><b>${record.winRate?.toFixed(0) ?? '—'}%</b> won</span>
+       <span class="${record.avgPct >= 0 ? 'pos' : 'neg'}"><b>${fmtPct(record.avgPct, 3)}</b> average, after costs</span>
+     </div>
+     <p class="tested-desc">Those are real results on history the search never looked at.
+        It is still a small edge on a short record${age !== null ? `, last checked ${age} day${age === 1 ? '' : 's'} ago` : ''}.</p>`;
 }
 
 function renderFactors() {

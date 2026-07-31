@@ -67,9 +67,10 @@ security risk. The password is just there if you'd rather keep it to yourself.
 ## What you're looking at
 
 **Right now** — the headline call: `LONG`, `SHORT`, or `WAIT`, plus how much of
-the reading agrees with it. `WAIT` means the signals disagree or are too weak to
-be worth acting on. Read the section on whether the signal works before you lean
-on this.
+the reading agrees with it, and a line stating whether a tested strategy is
+behind the call or whether it is only a summary of conditions. When a strategy
+does survive the search, it makes the call and its real record is shown next
+to it.
 
 **Why** — the seven things that produced that call. Each row votes long (green,
 bar right of centre) or short (red, bar left of centre):
@@ -129,39 +130,78 @@ any browser cross-origin restrictions and, more usefully, lets one set of
 upstream calls serve every open tab. The page polls every 2 seconds while the
 cache holds each Kalshi response for about a second.
 
-## Does the signal actually work?
+## Finding a strategy that works
 
-Run the backtest and find out for yourself:
+`search.js` pulls every minute of history Kalshi still has (about 58 days,
+880,000 bars across 12 markets), tries every strategy family at every setting,
+and reports what survives.
 
 ```bash
-node backtest.js              # BTC, 5 days
-node backtest.js all 5        # every liquid market, pooled
+node search.js                # search and report
+node search.js --write        # also save the winner for the dashboard to use
+node search.js --days 30      # shorter history
 ```
 
-It replays history one minute at a time, scores each minute using only the data
-available at that moment, then checks what price did next.
+Families tried: trend following (moving-average crossovers), momentum,
+breakouts, two kinds of mean reversion, funding carry, volatility-filtered
+trend, and always-long as a baseline — 1,215 combinations in all.
 
-**What it says today, over ~82,000 minutes across 12 markets:** the score does
-not predict short-term direction. Long calls were right 47.1% of the time at 15
-minutes, against a 48.2% baseline of price simply rising. Every cut-off from
-0.15 to 0.50 came out at or below break-even, and the score buckets are flat
-where they should slope.
+### How it avoids fooling itself
 
-A single market over a few days sometimes looks much better than that — BTC
-alone showed a decent edge — but that disappears the moment you pool markets,
-which is what noise does.
+Search hard enough and something always fits. Four things stop that here:
 
-So treat the LONG/SHORT/WAIT call as a summary of current conditions, not a
-prediction. What this dashboard is genuinely good at is the stuff that isn't a
-forecast at all: what a position costs to hold, how wide the spread is, how much
-depth is behind the price, and how many contracts match your risk.
+- **Real costs.** Every trade pays the spread that actually existed on those
+  bars, in and out. That is about 0.02% a round trip and it is bigger than most
+  of the edges on offer, so a test without it is meaningless.
+- **No overlapping samples.** Measuring a 4-hour return from every single
+  minute gives you 240 copies of the same price move dressed up as 240
+  independent results. Trades are taken one holding period apart.
+- **A held-back slice.** The last 30% of history is never used to choose
+  anything, only to report on the choice.
+- **Consistency, not peak score.** The best row in a search is usually the
+  luckiest row. A setting is only eligible if it made money in *every* stretch
+  of the training period, in *most* markets, and with neighbouring settings
+  agreeing. Then the middle performer is picked, not the best.
 
-Two caveats on the backtest itself. It can only replay the three price-based
-factors — the order book, the trade tape, funding and the index gap are half the
-live score and aren't available historically. And a few days is a small sample,
-so treat anything under a couple of points as noise.
+There are tests covering all of this, including one that proves no strategy can
+see future bars and one that proves the choice does not change when the
+held-back results change.
 
-## Tests
+### What it found
+
+**No single strategy earned the right to drive the call.** Everything that
+looked good in training either lost money on the held-back data or only worked
+in a handful of markets. So `strategy.json` holds `chosen: null` and the
+dashboard says plainly that nothing tested is behind its call.
+
+**But the search was not a blank.** Look at where the survivors landed:
+
+| Family | Combinations tested | Survived out of sample |
+| --- | --- | --- |
+| Fade it: distance from the average | 75 | **10** |
+| Fade it: buy oversold, sell overbought | 240 | **3** |
+| Trend: fast average vs slow average | 465 | 0 |
+| Trend, only when it is moving | 180 | 0 |
+| Momentum: recent move continues | 105 | 0 |
+| Breakout: new high or new low | 75 | 0 |
+| Carry: lean against whoever is paying | 60 | 0 |
+| Always long (baseline) | 15 | 0 |
+
+Every survivor is a mean-reversion strategy. All 885 trend, momentum, breakout
+and carry combinations produced nothing. If this were luck the winners would be
+scattered across families in proportion to how many were tried — trend would
+have had about ten of them. It had none.
+
+The honest reading: on these markets, over these two months, **fading a
+stretched move did something and chasing a move did not**. That is a direction
+worth knowing. It is not the same as a profitable system, because the specific
+settings that survived were identified by looking at the held-back data, which
+is the one thing you are not allowed to do when choosing.
+
+Re-run the search every few weeks. If the same family keeps surviving on fresh
+data, the finding is getting stronger.
+
+## Tests## Tests
 
 ```bash
 npm test
@@ -180,7 +220,7 @@ never ship it to the browser.
 ## Not financial advice
 
 The signals are mechanical readings of live public data. They are not
-predictions, they show no measured edge over the history that can be replayed
-(see above), and perpetual futures are leveraged
+predictions, no strategy has yet survived testing well enough to drive them,
+and perpetual futures are leveraged
 products where you can lose more than you expect very quickly. Every trade is
 your decision.

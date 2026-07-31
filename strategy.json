@@ -1,0 +1,99 @@
+{
+  "generatedAt": "2026-07-31T19:13:05.164Z",
+  "historyDays": 58,
+  "markets": [
+    "KXBTCPERP",
+    "KXETHPERP",
+    "KXHYPEPERP",
+    "KXSUIPERP",
+    "KXNEARPERP",
+    "KXDOGEPERP",
+    "KXBCHPERP",
+    "KXZECPERP",
+    "KXSOLPERP",
+    "KXLTCPERP",
+    "KXLINKPERP",
+    "KXXRPPERP"
+  ],
+  "combinationsTested": 1215,
+  "chosen": null,
+  "verdict": {
+    "pass": false,
+    "reason": "lost money after costs on the held-back data"
+  },
+  "perMarket": [
+    {
+      "ticker": "KXXRPPERP",
+      "n": 12,
+      "mean": 0.3538557438049122,
+      "winRate": 83.33333333333334
+    },
+    {
+      "ticker": "KXSOLPERP",
+      "n": 12,
+      "mean": 0.2658927759423841,
+      "winRate": 66.66666666666666
+    },
+    {
+      "ticker": "KXBCHPERP",
+      "n": 9,
+      "mean": 0.012945144043690146,
+      "winRate": 44.44444444444444
+    },
+    {
+      "ticker": "KXBTCPERP",
+      "n": 12,
+      "mean": 0.009845148880427425,
+      "winRate": 50
+    },
+    {
+      "ticker": "KXETHPERP",
+      "n": 12,
+      "mean": -0.04928378861711554,
+      "winRate": 41.66666666666667
+    },
+    {
+      "ticker": "KXNEARPERP",
+      "n": 7,
+      "mean": -0.10072632786200957,
+      "winRate": 42.857142857142854
+    },
+    {
+      "ticker": "KXZECPERP",
+      "n": 8,
+      "mean": -0.19409948695673165,
+      "winRate": 50
+    },
+    {
+      "ticker": "KXLTCPERP",
+      "n": 6,
+      "mean": -0.20389884707896266,
+      "winRate": 50
+    },
+    {
+      "ticker": "KXSUIPERP",
+      "n": 9,
+      "mean": -0.2852051314902427,
+      "winRate": 11.11111111111111
+    },
+    {
+      "ticker": "KXHYPEPERP",
+      "n": 11,
+      "mean": -0.4303292043686948,
+      "winRate": 36.36363636363637
+    },
+    {
+      "ticker": "KXDOGEPERP",
+      "n": 0,
+      "mean": null,
+      "winRate": null
+    },
+    {
+      "ticker": "KXLINKPERP",
+      "n": 5,
+      "mean": -0.6843131205247399,
+      "winRate": 0
+    }
+  ],
+  "marketsPositive": 4
+}

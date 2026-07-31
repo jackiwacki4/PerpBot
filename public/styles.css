@@ -251,3 +251,25 @@ html, body {
   color: var(--dim);
 }
 .plan-note b, .plan-item .s b { color: var(--text); font-family: var(--mono); font-weight: 650; }
+
+/* The tested-strategy panel: what is driving the call, and its real record. */
+.tested {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+.tested p { margin: 4px 0 0; }
+.tested code { font-family: var(--mono); color: var(--muted); }
+.tested-head { font-size: 12px; font-weight: 650; color: var(--text); }
+.tested.none .tested-head { color: var(--wait); }
+.tested-desc { color: var(--dim); }
+.tested-record {
+  display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 8px 0 6px;
+  font-size: 11.5px; color: var(--muted);
+}
+.tested-record b { font-family: var(--mono); color: var(--text); font-weight: 650; }
+.tested-record .pos b { color: var(--long); }
+.tested-record .neg b { color: var(--short); }
