@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PerpBot · Kalshi Perps Co-Pilot</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='26' font-size='26'>📈</text></svg>" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">◆</span>
+      <span>PerpBot</span>
+      <span class="brand-sub">Kalshi perps co-pilot</span>
+    </div>
+
+    <div class="market-picker">
+      <label for="market-select" class="sr-only">Market</label>
+      <select id="market-select"></select>
+    </div>
+
+    <div class="price-header" id="price-header">
+      <div class="price-main">
+        <span class="price-value" id="hdr-price">—</span>
+        <span class="price-change" id="hdr-change"></span>
+      </div>
+      <div class="price-sub" id="hdr-sub">waiting for data…</div>
+    </div>
+
+    <div class="status">
+      <span class="dot" id="status-dot"></span>
+      <span id="status-text">connecting</span>
+      <a class="kalshi-link" href="https://kalshi.com/perps" target="_blank" rel="noopener">Open Kalshi ↗</a>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ── Column 1: the call ─────────────────────────────────────── -->
+    <section class="col">
+      <article class="card signal-card" id="signal-card">
+        <div class="card-head">
+          <h2>Right now</h2>
+          <span class="hint" id="signal-updated"></span>
+        </div>
+        <div class="verdict" id="verdict">
+          <div class="verdict-bias" id="verdict-bias">—</div>
+          <div class="verdict-meta">
+            <div class="conf-row">
+              <span>Confidence</span>
+              <strong id="verdict-conf">—</strong>
+            </div>
+            <div class="conf-bar"><i id="verdict-conf-bar"></i></div>
+            <div class="verdict-line" id="verdict-line"></div>
+          </div>
+        </div>
+        <div class="score-scale">
+          <div class="score-track">
+            <span class="score-zone short"></span>
+            <span class="score-zone wait"></span>
+            <span class="score-zone long"></span>
+            <i class="score-needle" id="score-needle"></i>
+          </div>
+          <div class="score-labels"><span>Short</span><span>Wait</span><span>Long</span></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head">
+          <h2>Why</h2>
+          <span class="hint">each row votes long or short</span>
+        </div>
+        <div id="factors" class="factors"></div>
+      </article>
+
+      <article class="card" id="warnings-card" hidden>
+        <div class="card-head"><h2>Watch out</h2></div>
+        <ul id="warnings" class="warnings"></ul>
+      </article>
+    </section>
+
+    <!-- ── Column 2: price + the ticket ───────────────────────────── -->
+    <section class="col">
+      <article class="card">
+        <div class="card-head">
+          <h2>Price</h2>
+          <div class="range-tabs" id="range-tabs">
+            <button data-range="30" class="active">30m</button>
+            <button data-range="60">1h</button>
+            <button data-range="240">4h</button>
+            <button data-range="7d">7d</button>
+          </div>
+        </div>
+        <canvas id="chart" height="220"></canvas>
+        <div class="chart-legend">
+          <span><i class="swatch line-price"></i>Perp price</span>
+          <span><i class="swatch line-index"></i>Index</span>
+          <span id="chart-range-label"></span>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><h2>Trade plan</h2><span class="hint">volatility-based, not a prediction</span></div>
+        <div id="plan" class="plan"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><h2>Position sizer</h2></div>
+        <div class="sizer-inputs">
+          <label>Account size ($)
+            <input type="number" id="account-size" value="1000" min="1" step="50" />
+          </label>
+          <label>Risk per trade (%)
+            <input type="number" id="risk-pct" value="1" min="0.1" max="100" step="0.1" />
+          </label>
+        </div>
+        <div id="sizer" class="sizer-out"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><h2>Market stats</h2></div>
+        <div class="stats" id="stats"></div>
+      </article>
+    </section>
+
+    <!-- ── Column 3: microstructure ───────────────────────────────── -->
+    <section class="col">
+      <article class="card">
+        <div class="card-head"><h2>Funding</h2><span class="hint" id="funding-countdown"></span></div>
+        <div id="funding" class="funding"></div>
+        <canvas id="funding-chart" height="90"></canvas>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><h2>Order book</h2><span class="hint" id="book-imbalance"></span></div>
+        <div class="book" id="book"></div>
+      </article>
+
+      <article class="card">
+        <div class="card-head"><h2>Tape</h2><span class="hint">most recent fills</span></div>
+        <div class="tape" id="tape"></div>
+      </article>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>
+      Read-only market data from Kalshi's public perps API. PerpBot does not place orders and
+      does not hold your keys. Signals are mechanical readings of live data, not financial advice —
+      you decide every trade.
+    </p>
+  </footer>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+{
+  "name": "perpbot",
+  "version": "1.0.0",
+  "description": "Real-time co-pilot dashboard for Kalshi perpetual futures",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "license": "MIT"
+}
