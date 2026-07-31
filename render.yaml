@@ -1,0 +1,16 @@
+# One-click deploy config for Render (https://render.com).
+# In the Render dashboard: New > Blueprint, point it at this repo, deploy.
+services:
+  - type: web
+    name: perpbot
+    runtime: node
+    plan: free
+    buildCommand: ''       # zero dependencies, nothing to build
+    startCommand: node server.js
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: '22'
+      # Uncomment and set a value to put the site behind a shared password.
+      # - key: SITE_PASSWORD
+      #   sync: false

@@ -20,6 +20,60 @@ Then open <http://localhost:3000>.
 To use a different port: `PORT=8080 node server.js`.
 To point at Kalshi's demo exchange instead of production: `KALSHI_ENV=demo node server.js`.
 
+## Put it on the internet
+
+Any of these work from this repo as-is. **Render is the easiest**, and it suits
+this app best: it runs one long-lived process, so the cache in `lib/kalshi.js`
+is shared by everyone looking at the site instead of being rebuilt per request.
+
+### Render (recommended)
+
+1. Push this repo to GitHub.
+2. On [render.com](https://render.com): **New → Blueprint**, pick the repo.
+   It reads `render.yaml` and needs no further configuration.
+3. You get a `https://perpbot-something.onrender.com` URL.
+
+On Render's free plan the service sleeps after 15 minutes with no traffic and
+takes roughly a minute to wake. In practice a dashboard tab polls every 2
+seconds, so it stays awake while you're actually using it — you'll only notice
+the delay on the first load of the day. The paid plan removes the sleeping.
+
+### Vercel
+
+```bash
+npx vercel
+```
+
+`vercel.json` serves `public/` from the CDN and routes `/api/*` to
+`api/index.js`. No sleeping and it's fast everywhere, but each serverless
+instance has its own memory, so the upstream cache is less effective and Kalshi
+sees more calls.
+
+### Docker (Fly, Railway, Cloud Run, your own box)
+
+```bash
+docker build -t perpbot .
+docker run -p 3000:3000 perpbot
+```
+
+## Settings for a public deploy
+
+All optional, set as environment variables:
+
+| Variable | Default | What it does |
+| --- | --- | --- |
+| `PORT` | `3000` | Port to listen on. Hosts set this for you. |
+| `SITE_PASSWORD` | unset | If set, the site asks for a password (any username). Off by default. |
+| `RATE_LIMIT_PER_MINUTE` | `120` | Requests allowed per visitor IP per minute. One open tab uses about 30. |
+| `KALSHI_ENV` | `prod` | Set to `demo` for Kalshi's demo exchange. |
+
+There's a `/healthz` endpoint for uptime checks; it stays reachable even when
+`SITE_PASSWORD` is on.
+
+Nothing here is secret — the app holds no keys and reads only public data — so a
+public URL is not a security problem. The password is just there if you'd rather
+not have strangers using your deployment.
+
 ## What you're looking at
 
 **Right now** — the headline call: `LONG`, `SHORT`, or `WAIT`, with a confidence
@@ -63,17 +117,22 @@ header — that's the one on Kalshi's order ticket.
 ## How it fits together
 
 ```
-browser (public/)  ──▶  server.js  ──▶  Kalshi public perps API
-   renders only          proxy + cache      external-api.kalshi.com
-                              │
-                              ├─ lib/kalshi.js    HTTP client, short-TTL cache
-                              ├─ lib/snapshot.js  raw payloads → one clean object
-                              ├─ lib/indicators.js  EMA, RSI, ATR, stdev
-                              └─ lib/signals.js   factors → bias, plan, sizing
+browser (public/)  ──▶  lib/app.js  ──▶  Kalshi public perps API
+   renders only         proxy + cache        external-api.kalshi.com
+                             ▲
+        server.js ───────────┤  long-running (local, Docker, Render, Fly)
+        api/index.js ────────┘  serverless (Vercel)
+
+        lib/kalshi.js      HTTP client, short-TTL cache
+        lib/snapshot.js    raw payloads → one clean object
+        lib/indicators.js  EMA, RSI, ATR, stdev
+        lib/signals.js     factors → bias, plan, sizing
 ```
 
-The browser can't call Kalshi directly (CORS blocks it), so the server sits in
-front. It polls every 2 seconds and caches for ~1 second so Kalshi isn't hammered.
+The browser doesn't call Kalshi directly — the server proxies it, which sidesteps
+any browser cross-origin restrictions and, more usefully, lets one set of
+upstream calls serve every open tab. The page polls every 2 seconds while the
+cache holds each Kalshi response for about a second.
 
 ## Tests
 
